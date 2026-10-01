@@ -1,0 +1,8 @@
+name=Tien's Customizable Left Sidebar
+id=TienCustomizableLeftSidebar
+description=Make the left sidebar yours. Drag its buttons into the order you like, hide the ones you never use, and set the space between them. Works with the game's buttons and the ones other mods add. Your layout is saved on your computer and follows you to every save and server.
+author=Tien
+poster=poster.png
+icon=icon.png
+modversion=0.1.0
+category=QoL
