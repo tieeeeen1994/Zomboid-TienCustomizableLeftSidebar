@@ -69,7 +69,10 @@ First implementation, not yet run in game. Only checked with luaparser (syntax a
   Sidebar]`, unbound by default (same pattern as TienLastSeenWhere).
 - Translations: `shared/Translate/EN/IG_UI.json` (`IGUI_TienCustomizableLeftSidebar_*`), `UI.json` (key binding labels).
 - `scripts/make_art.py`: the Customize icon (three rows, the middle one pulled out as if dragged, and a pencil; drawn,
-  not composed from vanilla icons, which would repeat the buttons right above it), icon, poster, preview.
+  not composed from vanilla icons, which would repeat the buttons right above it), icon, poster, preview. The icon is
+  drawn on an oversized canvas and then scaled to fit inside the 4:3 frame with a pixel to spare (`fit`): drawn straight
+  onto the frame, the pencil and the outlines ran past its edges and were cut off. Outlines grow the shape with a round pen
+  (`grow`: the mask shifted round a circle), since a square `MaxFilter` left stepped, boxy corners on the slanted pencil.
 
 ## To verify in game
 

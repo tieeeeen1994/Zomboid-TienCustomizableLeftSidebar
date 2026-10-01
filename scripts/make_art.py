@@ -53,7 +53,14 @@ def vertical_gradient(size, top, bottom):
 
 
 def grow(mask, px):
-    return mask.filter(ImageFilter.MaxFilter(px * 2 + 1))
+    """Grows the mask by px with a round pen, so outlines keep round corners on slanted
+    shapes (a square MaxFilter leaves stepped, boxy corners)."""
+    out = mask.copy()
+    steps = max(16, round(px * 2 * math.pi))
+    for i in range(steps):
+        a = 2 * math.pi * i / steps
+        out = ImageChops.lighter(out, ImageChops.offset(mask, round(px * math.cos(a)), round(px * math.sin(a))))
+    return out
 
 
 def solid(size, colour):
@@ -104,25 +111,31 @@ def sidebar_icon(size, state):
     icons: a thin white line outside a black one."""
     on = state == "On"
     w, h = size * SS, int(size * 0.75) * SS
-    full = (w, h)
     u = h / 100.0
+    o = 25 * u
+    full = (round(w + 2 * o), round(h + 2 * o))
     stroke = max(SS, round(size * SS / 56))
     img = Image.new("RGBA", full, (0, 0, 0, 0))
 
     rows = [
-        (14 * u, 14 * u, 78 * u, 33 * u, 0),
-        (26 * u, 41 * u, 90 * u, 60 * u, 1),
-        (14 * u, 68 * u, 78 * u, 87 * u, 0),
+        (o + 14 * u, o + 14 * u, o + 78 * u, o + 33 * u, 0),
+        (o + 26 * u, o + 41 * u, o + 90 * u, o + 60 * u, 1),
+        (o + 14 * u, o + 68 * u, o + 78 * u, o + 87 * u, 0),
     ]
-    tip = (78 * u, 92 * u)
-    end = (124 * u, 10 * u)
+    tip = (o + 78 * u, o + 92 * u)
+    end = (o + 124 * u, o + 10 * u)
     half = 9.5 * u
     parts = pencil_parts(tip, end, half)
 
     pencil_mask = Image.new("L", full, 0)
     ImageDraw.Draw(pencil_mask).polygon(parts["outline"], fill=255)
     row_masks = [rounded(full, (x0, y0, x1, y1), 6 * u) for x0, y0, x1, y1, _ in rows]
-    silhouette = pencil_mask.copy()
+    lx0, ly0, _, ly1, _ = rows[1]
+    arrow_y = (ly0 + ly1) / 2
+    arrow = [(lx0 - 15 * u, arrow_y), (lx0 - 5 * u, arrow_y - 6.5 * u), (lx0 - 5 * u, arrow_y + 6.5 * u)]
+    arrow_mask = Image.new("L", full, 0)
+    ImageDraw.Draw(arrow_mask).polygon(arrow, fill=255)
+    silhouette = ImageChops.lighter(pencil_mask, arrow_mask)
     for m in row_masks:
         silhouette = ImageChops.lighter(silhouette, m)
     paint(img, grow(silhouette, stroke * 2), (255, 255, 255))
@@ -142,10 +155,8 @@ def sidebar_icon(size, state):
         line_y = (y0 + y1) / 2
         d.rounded_rectangle([x0 + 8 * u + sq, line_y - 2 * u, x1 - 7 * u, line_y + 2 * u], radius=2 * u,
                             fill=(12, 12, 12, 170))
-        if lifted:
-            ax = x0 - 9 * u
-            d.polygon([(ax, line_y), (ax + 6 * u, line_y - 5 * u), (ax + 6 * u, line_y + 5 * u)], fill=(12, 12, 12, 255))
 
+    paint(img, arrow_mask, (12, 12, 12))
     paint(img, grow(pencil_mask, stroke), (12, 12, 12))
     layers = [
         ("body", ((255, 214, 80), (222, 150, 30)) if on else ((215, 215, 215), (140, 140, 140))),
@@ -160,10 +171,24 @@ def sidebar_icon(size, state):
         ImageDraw.Draw(mask).polygon(parts[name], fill=255)
         paint(img, mask, vertical_gradient(full, top, bottom))
     d = ImageDraw.Draw(img)
-    for name in ("ferrule", "eraser", "body"):
-        d.line(parts[name][:2], fill=(12, 12, 12, 255), width=max(1, stroke // 2))
-        d.line(parts[name][2:], fill=(12, 12, 12, 255), width=max(1, stroke // 2))
-    return img.resize((size, int(size * 0.75)), Image.LANCZOS)
+    ferrule = parts["ferrule"]
+    for a, b in ((ferrule[0], ferrule[3]), (ferrule[1], ferrule[2])):
+        d.line([a, b], fill=(12, 12, 12, 255), width=max(1, stroke // 2))
+    return fit(img, (size, int(size * 0.75)))
+
+
+def fit(img, size):
+    """Scales the drawing down to fit inside the icon with a pixel to spare on every side, centred,
+    so no outline is cut off at the canvas edge."""
+    box = img.getchannel("A").getbbox()
+    art = img.crop(box)
+    w, h = size[0] * SS, size[1] * SS
+    margin = SS
+    scale = min((w - 2 * margin) / art.width, (h - 2 * margin) / art.height)
+    art = art.resize((max(1, round(art.width * scale)), max(1, round(art.height * scale))), Image.LANCZOS)
+    out = Image.new("RGBA", (w, h), (0, 0, 0, 0))
+    out.alpha_composite(art, ((w - art.width) // 2, (h - art.height) // 2))
+    return out.resize(size, Image.LANCZOS)
 
 
 def backdrop(size):
