@@ -256,6 +256,15 @@ local function place(button, y)
     end
 end
 
+-- Vanilla hides the Move Furniture button while the mouse is over it and shows its mode popup in its place,
+-- so it still takes its slot then; otherwise the buttons below move up behind the popup.
+local function takesSlot(sidebar, button)
+    if button:isVisible() then
+        return true
+    end
+    return button == sidebar.movableBtn and sidebar.movablePopup ~= nil and sidebar.movablePopup:isVisible()
+end
+
 local function syncAttachments(sidebar)
     local movable = sidebar.movableBtn
     if movable then
@@ -293,7 +302,7 @@ function Sidebar.AfterPrerender(sidebar)
 
     local function layoutButton(button, id)
         placed[button] = true
-        if settings.hidden[id] or not button:isVisible() then
+        if settings.hidden[id] or not takesSlot(sidebar, button) then
             place(button, Sidebar.PARK_Y)
         else
             place(button, y)
