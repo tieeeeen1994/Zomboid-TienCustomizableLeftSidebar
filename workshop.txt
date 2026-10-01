@@ -1,4 +1,5 @@
 version=1
+id=3811213375
 title=Tien's Customizable Left Sidebar
 description=Make the left sidebar yours: drag its buttons into the order you like, hide the ones you never use, and set the space between them.
 description=
@@ -18,4 +19,4 @@ description=The layout is saved on your computer (Zomboid/Lua/TienCustomizableLe
 description=
 description=Build 42 only. Changes only your own screen; in multiplayer the server needs it in its mod list like any other mod.
 tags=Build 42;Interface
-visibility=unlisted
+visibility=public
